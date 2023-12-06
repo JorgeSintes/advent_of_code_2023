@@ -65,10 +65,10 @@ int main(){
 
     if (input.is_open()) {
         while (getline(input, line)) {
-            std::cout << line << std::endl;
+            // std::cout << line << std::endl;
             line = substitute_digits(line);
-            std::cout << line << std::endl;
-            std::cout << parse_line(line) << std::endl;
+            // std::cout << line << std::endl;
+            // std::cout << parse_line(line) << std::endl;
             sum += parse_line(line);
         }
         input.close();
