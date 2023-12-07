@@ -89,84 +89,138 @@ bool has_simbol_around(vector<string> schematic, Number number) {
 }
 
 struct Gear {
-    int start_index;
-    int length;
+    int row;
+    int col;
 };
 
-Gear find_first_gear(string line, int start_index) {
-    for (int i = start_index; i < line.length(); i++) {
-        if (line[i] == '*') {
-            return {i, 1};
+Gear find_first_gear(vector<string> schematic, int row, int col) {
+    Gear gear = {-1, -1};
+    for (int i = col; i < schematic[row].length(); i++) {
+        if (schematic[row][i] == '*') {
+            gear = {row, i};
+            return gear;
         }
     }
-    return {0, 0};
+    return gear;
 }
 
-// PartNumber find_digit_smart(string line, int index) {
-//     int i = 0;
-//     PartNumber number;
-//     while ((number = find_first_number(line, i)).length != 0 && i < line.length()) {
-//         // cout << "number: " << number.value << endl;
-//         if (number.start_index <= index && index < number.start_index + number.length) {
-//             return number;
-//         }
-//         i = number.start_index + number.length;
-//     }
-//     return 0;
-// }
+Number find_digit_smart(vector<string> schematic, int row, int col) {
+    int start_position = col;
+    int end_position = col;
+    Number number = {0, 0, 0, 0};
 
-// int find_gear_ratio(Gear gear, int row_number, vector<string> schematic) {
-//     int left = max(gear.start_index - 1, 0);
-//     int right = min(gear.start_index + gear.length, (int)schematic[0].length()-1);
-//     int top = max(row_number - 1, 0);
-//     int bottom = min(row_number + 1, (int)schematic.size() - 1);
-//     int gear_count = 0;
-//     int gear_ratio = 1;
-//     // left
-//     if (isdigit(schematic[row_number][left])) {
-//         gear_count++;
-//         gear_ratio *= find_digit_smart(schematic[row_number], left).value;
-//         cout << "left " << find_digit_smart(schematic[row_number], left) << endl;
-//     }
-//     // right
-//     if (isdigit(schematic[row_number][right])) {
-//         gear_count++;
-//         gear_ratio *= find_digit_smart(schematic[row_number], right).value;
-//         cout << "right " << find_digit_smart(schematic[row_number], right) << endl;
-//     }
-//     //top
-//     if (top != row_number) {
-//         if (isdigit(schematic[top][left])) {
-//             PartNumber left_digit = find_digit_smart(schematic[top], left);
-//             gear_count++;
-//             gear_ratio *= left_digit.value;
-//         }
-//     }
+    if (!isdigit(schematic[row][col])) {
+        return number;
+    }
 
-//     // bottom 
-//     if (bottom != row_number) {
-//         for (int i = left; i <= right; i++) {
-//             if (isdigit(schematic[bottom][i])) {
-//                 gear_count++;
-//                 gear_ratio *= find_digit_smart(schematic[bottom], i);
-//                 cout << "bottom" << find_digit_smart(schematic[bottom], i) << endl;
-//             }
-//         }
-//     }
+    while (start_position >= 0 && isdigit(schematic[row][start_position])) {
+        start_position--;
+    }
+    while (end_position < schematic[row].length() && isdigit(schematic[row][end_position])) {
+        end_position++;
+    }
 
-//     if (gear_count == 2) {
-//         return gear_ratio;
-//     }
+    number = {
+        stoi(schematic[row].substr(start_position + 1, end_position - start_position - 1)), 
+        row, 
+        start_position + 1, 
+        end_position - start_position - 1
+    };
+    
+    return number;
+}
 
-//     return 0;
+int find_gear_ratio(vector<string> schematic, Gear gear) {
+    int num_count = 0;
+    int gear_ratio = 1;
+    int left = max(gear.col - 1, 0);
+    int right = min(gear.col + 1, (int)schematic[0].length()-1);
+    int top = max(gear.row - 1, 0);
+    int bottom = min(gear.row + 1, (int)schematic.size() - 1);
 
-// }
+    // left
+    if (isdigit(schematic[gear.row][left])) {
+        num_count++;
+        gear_ratio *= find_digit_smart(schematic, gear.row, left).value;
+    }
+    // right
+    if (isdigit(schematic[gear.row][right])) {
+        num_count++;
+        gear_ratio *= find_digit_smart(schematic, gear.row, right).value;
+    }
+    // top
+    if (top != gear.row) {
+        // If there is a gear in the top center, there's only one number.
+        if (isdigit(schematic[top][gear.col])) {
+            num_count++;
+            gear_ratio *= find_digit_smart(schematic, top, gear.col).value;
+            // cout << "found in top center" << find_digit_smart(schematic, top, gear.col).value << endl;
+        }
+        else {
+            // If there is no gear in the top center, there can be two numbers.
+            if (isdigit(schematic[top][left])) {
+                num_count++;
+                Number number = find_digit_smart(schematic, top, left);
+                gear_ratio *= number.value;
+                // cout << "Found in top left " << number.value << endl;
+                // if there is a gear in the top left, there could be another number in the right
+                if (isdigit(schematic[top][right]) && number.start != find_digit_smart(schematic, top, right).start) {
+                    num_count++;
+                    gear_ratio *= find_digit_smart(schematic, top, right).value;
+                    // cout << "Found in top right after top left" << find_digit_smart(schematic, top, right).value << endl;
+                }
+            }
+            else if (isdigit(schematic[top][right])) {
+                num_count++;
+                gear_ratio *= find_digit_smart(schematic, top, right).value;
+                // cout << find_digit_smart(schematic, top, gear.col).value << endl;
+                // cout << "Found in top right" << find_digit_smart(schematic, top, right).value << endl;
+            }
+        }
+    }
+
+    // bottom
+    if (bottom != gear.row) {
+        // If there is a gear in the bottom center, there's only one number.
+        if (isdigit(schematic[bottom][gear.col])) {
+            num_count++;
+            gear_ratio *= find_digit_smart(schematic, bottom, gear.col).value;
+            // cout << "found in bottom center" << find_digit_smart(schematic, bottom, gear.col).value << endl;
+        }
+        else {
+            // If there is no gear in the bottom center, there can be two numbers.
+            if (isdigit(schematic[bottom][left])) {
+                num_count++;
+                Number number = find_digit_smart(schematic, bottom, left);
+                gear_ratio *= number.value;
+                // cout << "Found in bottom left " << number.value << endl;
+                // if there is a gear in the bottom left, there could be another number in the right
+                if (isdigit(schematic[bottom][right]) && number.start != find_digit_smart(schematic, bottom, right).start) {
+                    num_count++;
+                    gear_ratio *= find_digit_smart(schematic, bottom, right).value;
+                    // cout << "Found in bottom right after bottom left" << find_digit_smart(schematic, bottom, right).value << endl;
+                }
+            }
+            else if (isdigit(schematic[bottom][right])) {
+                num_count++;
+                gear_ratio *= find_digit_smart(schematic, bottom, right).value;
+                // cout << "Found in top right" << find_digit_smart(schematic, bottom, right).value << endl;
+            }
+        }
+    }
+    if (num_count == 2) {
+        return gear_ratio;
+    }
+    return 0;
+}
 
 int main() {
     // vector<string> schematic = parse_schematic("short_input.txt");
     vector<string> schematic = parse_schematic("input.txt");
     Number number;
+    Gear gear;
     int part_sum = 0;
+    int gear_ratio_sum = 0;
 
     for (int row = 0; row < schematic.size(); row++) {
         // cout << "\nline " << row_number << endl;
@@ -179,23 +233,17 @@ int main() {
             // cout << "Running number: " << part_sum << endl;
         }
     }
-
     cout << "Part sum: " << part_sum << endl;
 
-    // Gear gear;
-    // int gear_sum = 0;
-    // vector<int> gear_numbers;
-
-    // for (int row_number = 0; row_number < schematic.size(); row_number++) {
-    //     cout << "\nline " << row_number << endl;
-    //     int j = 0;
-    //     while((gear = find_first_gear(schematic[row_number], j)).length != 0) {
-    //         cout << "Gear found at " <<  gear.start_index << endl;
-    //         gear_sum += find_gear_ratio(gear, row_number, schematic);
-    //         j = gear.start_index + gear.length;
-    //         cout << "Running number: " << gear_sum << endl;
-    //     }
-    // }
-
+    for (int row = 0; row < schematic.size(); row++) {
+        int col = 0;
+        while((gear = find_first_gear(schematic, row, col)).row != -1) {
+            int gear_ratio = find_gear_ratio(schematic, gear);
+            // cout << "Gear found at: " << gear.row << ", " << gear.col << " with ratio: " << gear_ratio << endl;
+            gear_ratio_sum += gear_ratio;
+            col = gear.col + 1;
+        }
+    }
+    cout << "Gear ratio sum: " << gear_ratio_sum << endl;
     return 0;
 }
