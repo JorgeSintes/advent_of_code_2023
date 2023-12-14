@@ -124,41 +124,35 @@ Node* find_next_node(Map &map, Node* node) {
         }
     }
     Node* next_node = new Node{-1, -1, nullptr};
+    next_node->previous = node;
+    node->next = next_node;
     if (next == 0) {
         next_node->i = up;
         next_node->j = j;
-        next_node->previous = node;
-        node->next = next_node;
     }
     else if (next == 1) {
         next_node->i = i;
         next_node->j = right;
-        next_node->previous = node;
-        node->next = next_node;
     }
     else if (next == 2) {
         next_node->i = down;
         next_node->j = j;
-        next_node->previous = node;
-        node->next = next_node;
     }
     else if (next == 3) {
         next_node->i = i;
         next_node->j = left;
-        next_node->previous = node;
-        node->next = next_node;
     }
     return next_node;
 }
 
 int construct_graph(Map &map, Node* start_node) {
-    cout << start_node->i << " " << start_node->j << endl;
+    // cout << start_node->i << " " << start_node->j << endl;
     Node* node = find_next_node(map, start_node);
-    cout << node->i << " " << node->j << endl;
+    // cout << node->i << " " << node->j << endl;
     int i = 1;
     while (node->i != start_node->i || node->j != start_node->j) {
         node = find_next_node(map, node);
-        cout << node->i << " " << node->j << endl;
+        // cout << node->i << " " << node->j << endl;
         i++;
     }
     node->previous->next = start_node;
